@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCA Website</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-cube"></i>
+                <span>FCA Website</span>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link active">首页</a>
+                <a href="school-records.html" class="nav-link">校记录</a>
+                <a href="weekly-contests.html" class="nav-link">周赛记录</a>
+            </div>
+            <div class="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="main-content">
+        <!-- 英雄区域 -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="gradient-text">FCA Website</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Records & Weekly Contests ...
+                    
+                </p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-contests">0</div>
+                        <div class="stat-label">周赛场次</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-participants">0</div>
+                        <div class="stat-label">参赛选手</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="total-records">0</div>
+                        <div class="stat-label">校记录</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="cube-animation">
+                    <div class="cube">
+                        <div class="face front"></div>
+                        <div class="face back"></div>
+                        <div class="face right"></div>
+                        <div class="face left"></div>
+                        <div class="face top"></div>
+                        <div class="face bottom"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能模块 -->
+        <section class="features">
+            <div class="container">
+                <h2 class="section-title">功能模块</h2>
+                <div class="features-grid">
+                    <div class="feature-card" onclick="location.href='school-records.html'">
+                        <div class="feature-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>FCA Records</h3>
+                        <p>查看提交校记录</p>
+                        <div class="feature-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card" onclick="location.href='weekly-contests.html'">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <h3>周赛记录</h3>
+                        <p>浏览记录周赛成绩</p>
+                        <div class="feature-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card" onclick="showStatsDevelopment()">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>成绩统计</h3>
+                        <p>数据分析与趋势展示</p>
+                        <div class="feature-arrow">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 最新动态 -->
+        <section class="recent-activity">
+            <div class="container">
+                <h2 class="section-title">最新动态</h2>
+                <div class="activity-list" id="recent-activity-list">
+                    <!-- 动态内容将通过 JavaScript 加载 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>FCA Website</h4>
+                    <p>Something about FCA</p>
+                </div>
+                <div class="footer-section">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="school-records.html">校记录</a></li>
+                        <li><a href="weekly-contests.html">周赛记录</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>联系我们</h4>
+                    <p>如有问题，请联系管理员或开发者</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 FCA Website. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
