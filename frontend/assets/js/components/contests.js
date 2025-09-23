@@ -35,8 +35,9 @@ export class ContestsComponent {
             this.filters = filters;
             this.showLoading();
             
-            // 使用静态数据
-            this.contests = mockData.weeklyContests;
+            // 使用真实API数据
+            const contests = await this.apiClient.getContests();
+            this.contests = contests;
             this.renderContests();
         } catch (error) {
             this.showError('加载周赛记录失败: ' + error.message);
@@ -97,6 +98,15 @@ export class ContestsComponent {
      * @returns {string} HTML字符串
      */
     generateWeekCard(week, weekContests, uniqueProjects) {
+        // 默认显示三阶项目，如果没有三阶则显示第一个有数据的项目
+        let defaultProject = weekContests.find(contest => contest.project === '三阶');
+        if (!defaultProject || !defaultProject.results || defaultProject.results.length === 0) {
+            defaultProject = weekContests.find(contest => contest.results && contest.results.length > 0) || weekContests[0];
+        }
+        
+        // 找到默认项目的索引
+        const defaultProjectIndex = uniqueProjects.findIndex(project => project === defaultProject?.project);
+        
         return `
             <div class="week-card fade-in-up">
                 <div class="week-header">
@@ -106,22 +116,31 @@ export class ContestsComponent {
                 
                 <!-- 项目标签栏 -->
                 <div class="project-tabs">
-                    ${uniqueProjects.map((project, index) => `
-                        <button class="project-tab ${index === 0 ? 'active' : ''}" 
-                                onclick="switchProject('${week.week}', '${project}')" 
-                                data-project="${project}">
-                            ${project}
-                        </button>
-                    `).join('')}
+                    ${uniqueProjects.map((project, index) => {
+                        const contest = weekContests.find(c => c.project === project);
+                        const hasResults = contest && contest.results && contest.results.length > 0;
+                        const isActive = project === defaultProject?.project;
+                        return `
+                            <button class="project-tab ${isActive ? 'active' : ''}" 
+                                    onclick="switchProject('${week.week}', '${project}')" 
+                                    data-project="${project}">
+                                ${project}
+                                ${hasResults ? `<span class="result-count">(${contest.results.length})</span>` : ''}
+                            </button>
+                        `;
+                    }).join('')}
                 </div>
                 
                 <div class="week-content" id="content-${week.week}">
-                    ${weekContests.map((contest, index) => `
-                        <div class="project-section ${index === 0 ? 'active' : ''}" data-project="${contest.project}">
-                            <h3 class="project-title">${contest.project}</h3>
-                            ${this.generateContestTable(contest)}
-                        </div>
-                    `).join('')}
+                    ${weekContests.map((contest, index) => {
+                        const isActive = contest.project === defaultProject?.project;
+                        return `
+                            <div class="project-section ${isActive ? 'active' : ''}" data-project="${contest.project}">
+                                <h3 class="project-title">${contest.project}</h3>
+                                ${this.generateContestTable(contest)}
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -133,6 +152,9 @@ export class ContestsComponent {
      * @returns {string} HTML字符串
      */
     generateContestTable(contest) {
+        // 对结果进行排名计算
+        const rankedResults = this.calculateRankings(contest.results || []);
+        
         return `
             <table class="contest-table">
                 <thead>
@@ -145,10 +167,88 @@ export class ContestsComponent {
                     </tr>
                 </thead>
                 <tbody>
-                    ${contest.results.map(result => this.generateResultRow(result)).join('')}
+                    ${rankedResults.map(result => this.generateResultRow(result)).join('')}
                 </tbody>
             </table>
         `;
+    }
+
+    /**
+     * 计算排名
+     * @param {Array} results - 结果数组
+     * @returns {Array} 带排名的结果数组
+     */
+    calculateRankings(results) {
+        if (!results || results.length === 0) return [];
+        
+        // 为每个结果计算平均成绩
+        const resultsWithAverage = results.map(result => {
+            const times = result.times || [];
+            if (times.length === 0) {
+                return { ...result, average: null, single: null };
+            }
+            
+            // 转换时间格式并排序
+            const numericTimes = times.map(time => {
+                if (typeof time === 'string' && time.includes(':')) {
+                    const parts = time.split(':');
+                    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+                }
+                return parseFloat(time) || 0;
+            }).filter(time => time > 0);
+            
+            if (numericTimes.length === 0) {
+                return { ...result, average: null, single: null };
+            }
+            
+            // 计算单次最好成绩
+            const single = Math.min(...numericTimes);
+            
+            // 计算平均成绩（去掉最好和最差，取中间三个的平均）
+            let average = null;
+            if (numericTimes.length >= 3) {
+                const sortedTimes = [...numericTimes].sort((a, b) => a - b);
+                const middleTimes = sortedTimes.slice(1, -1); // 去掉最好和最差
+                average = middleTimes.reduce((sum, time) => sum + time, 0) / middleTimes.length;
+            } else if (numericTimes.length >= 1) {
+                average = numericTimes.reduce((sum, time) => sum + time, 0) / numericTimes.length;
+            }
+            
+            return {
+                ...result,
+                single: single,
+                average: average,
+                numericTimes: numericTimes
+            };
+        });
+        
+        // 按平均成绩排序（平均成绩越小排名越高）
+        const sortedResults = resultsWithAverage.sort((a, b) => {
+            if (a.average === null && b.average === null) return 0;
+            if (a.average === null) return 1;
+            if (b.average === null) return -1;
+            return a.average - b.average;
+        });
+        
+        // 添加排名
+        let currentRank = 1;
+        let lastAverage = null;
+        
+        return sortedResults.map((result, index) => {
+            if (result.average !== null) {
+                if (lastAverage !== null && Math.abs(result.average - lastAverage) > 0.01) {
+                    currentRank = index + 1;
+                }
+                lastAverage = result.average;
+            } else {
+                currentRank = index + 1;
+            }
+            
+            return {
+                ...result,
+                ranking: currentRank
+            };
+        });
     }
 
     /**
@@ -157,7 +257,12 @@ export class ContestsComponent {
      * @returns {string} HTML字符串
      */
     generateResultRow(result) {
-        const sortedTimes = [...result.times].sort((a, b) => {
+        // 使用计算出的单次和平均成绩
+        const single = result.single;
+        const average = result.average;
+        
+        // 对原始时间进行排序用于显示
+        const sortedTimes = [...(result.times || [])].sort((a, b) => {
             const timeA = typeof a === 'string' ? parseFloat(a.replace(':', '.')) : a;
             const timeB = typeof b === 'string' ? parseFloat(b.replace(':', '.')) : b;
             return timeA - timeB;
@@ -171,15 +276,15 @@ export class ContestsComponent {
                     </span>
                 </td>
                 <td>${result.name}</td>
-                <td>${formatTime(result.single)}</td>
-                <td>${formatTime(result.average)}</td>
+                <td>${single ? this.formatTime(single) : '-'}</td>
+                <td>${average ? this.formatTime(average) : '-'}</td>
                 <td>
                     <div class="times-list">
-                        ${result.times.map(time => {
+                        ${(result.times || []).map(time => {
                             const isBest = time === sortedTimes[0];
                             const isWorst = time === sortedTimes[sortedTimes.length - 1];
                             const displayTime = isBest || isWorst ? 
-                                `( ${formatTime(time)} )` : formatTime(time);
+                                `( ${this.formatTime(time)} )` : this.formatTime(time);
                             return `
                                 <span class="time-item ${isBest ? 'best' : isWorst ? 'worst' : ''}">
                                     ${displayTime}
@@ -190,6 +295,26 @@ export class ContestsComponent {
                 </td>
             </tr>
         `;
+    }
+
+    /**
+     * 格式化时间显示
+     * @param {number|string} time - 时间（秒）
+     * @returns {string} 格式化后的时间字符串
+     */
+    formatTime(time) {
+        if (!time || time === 0) return '-';
+        
+        const numTime = typeof time === 'string' ? parseFloat(time) : time;
+        if (isNaN(numTime)) return '-';
+        
+        if (numTime < 60) {
+            return numTime.toFixed(2);
+        } else {
+            const minutes = Math.floor(numTime / 60);
+            const seconds = (numTime % 60).toFixed(2);
+            return `${minutes}:${seconds.padStart(5, '0')}`;
+        }
     }
 
     /**
@@ -206,13 +331,13 @@ export class ContestsComponent {
         
         // 隐藏所有项目
         projectSections.forEach(section => {
-            section.style.display = 'none';
+            section.classList.remove('active');
         });
         
         // 显示选中的项目
         const selectedSection = weekContent.querySelector(`[data-project="${project}"]`);
         if (selectedSection) {
-            selectedSection.style.display = 'block';
+            selectedSection.classList.add('active');
         }
         
         // 更新标签状态

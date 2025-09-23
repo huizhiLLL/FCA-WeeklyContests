@@ -14,10 +14,6 @@
         font-size: 2.5rem;
     }
     
-    .hero-stats {
-        flex-direction: column;
-        gap: var(--spacing-lg);
-    }
     
     .hero-visual {
         display: none;
@@ -203,9 +199,6 @@
         font-size: 1.25rem;
     }
     
-    .stat-number {
-        font-size: 2rem;
-    }
     
     .contest-table {
         font-size: 0.7rem;
@@ -231,11 +224,6 @@
         margin-bottom: var(--spacing-lg);
     }
     
-    .hero-stats {
-        margin-top: var(--spacing-lg);
-        flex-direction: row;
-        gap: var(--spacing-lg);
-    }
     
     .page-header {
         padding: var(--spacing-lg) 0;

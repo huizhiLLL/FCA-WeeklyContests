@@ -7,7 +7,7 @@ import { showError, showSuccess } from './utils.js';
 
 // API 基础配置
 const API_CONFIG = {
-    baseURL: 'https://your-sealos-function-url.com', // 替换为实际的 Sealos 函数 URL
+    baseURL: 'https://fcabackend.hzcubing.club', // Sealos 云函数 URL
     timeout: 10000,
     retryCount: 3
 };
@@ -133,7 +133,7 @@ export const recordsAPI = {
      */
     async getRecords(params = {}) {
         try {
-            const response = await apiClient.get('/api/records', params);
+            const response = await apiClient.get('/get-records', params);
             return response.data || [];
         } catch (error) {
             showError('获取校记录失败: ' + error.message);
@@ -167,7 +167,7 @@ export const recordsAPI = {
      */
     async createRecord(record) {
         try {
-            const response = await apiClient.post('/api/records', record);
+            const response = await apiClient.post('/create-record', record);
             showSuccess('校记录创建成功');
             return response.data;
         } catch (error) {
@@ -184,7 +184,7 @@ export const recordsAPI = {
      */
     async updateRecord(id, record) {
         try {
-            const response = await apiClient.put(`/api/records/${id}`, record);
+            const response = await apiClient.post('/update-record', { _id: id, ...record });
             showSuccess('校记录更新成功');
             return response.data;
         } catch (error) {
@@ -200,7 +200,7 @@ export const recordsAPI = {
      */
     async deleteRecord(id) {
         try {
-            const response = await apiClient.delete(`/api/records/${id}`);
+            const response = await apiClient.get(`/delete-record?_id=${id}`);
             showSuccess('校记录删除成功');
             return response.data;
         } catch (error) {
@@ -221,7 +221,7 @@ export const contestsAPI = {
      */
     async getContests(params = {}) {
         try {
-            const response = await apiClient.get('/api/contests', params);
+            const response = await apiClient.get('/get-contests', params);
             return response.data || [];
         } catch (error) {
             showError('获取周赛记录失败: ' + error.message);
@@ -245,7 +245,7 @@ export const contestsAPI = {
      */
     async createContest(contest) {
         try {
-            const response = await apiClient.post('/api/contests', contest);
+            const response = await apiClient.post('/create-contest', contest);
             showSuccess('周赛记录创建成功');
             return response.data;
         } catch (error) {
@@ -262,7 +262,7 @@ export const contestsAPI = {
      */
     async updateContest(id, contest) {
         try {
-            const response = await apiClient.put(`/api/contests/${id}`, contest);
+            const response = await apiClient.post('/update-contest', { _id: id, ...contest });
             showSuccess('周赛记录更新成功');
             return response.data;
         } catch (error) {
@@ -278,7 +278,7 @@ export const contestsAPI = {
      */
     async deleteContest(id) {
         try {
-            const response = await apiClient.delete(`/api/contests/${id}`);
+            const response = await apiClient.get(`/delete-contest?_id=${id}`);
             showSuccess('周赛记录删除成功');
             return response.data;
         } catch (error) {
@@ -289,38 +289,32 @@ export const contestsAPI = {
 };
 
 /**
- * 统计数据相关 API
+ * 周赛成绩提交相关 API
  */
-export const statsAPI = {
+export const contestScoresAPI = {
     /**
-     * 获取统计数据
-     * @returns {Promise} 统计数据
+     * 提交周赛项目成绩
+     * @param {string} contestId - 周赛ID
+     * @param {string} project - 项目名称
+     * @param {Array} players - 选手成绩数组 [{name: string, times: string[]}]
+     * @returns {Promise} 提交结果
      */
-    async getStats() {
+    async submitScores(contestId, project, players) {
         try {
-            const response = await apiClient.get('/api/stats');
-            return response.data || {};
-        } catch (error) {
-            showError('获取统计数据失败: ' + error.message);
-            throw error;
-        }
-    },
-
-    /**
-     * 更新统计数据
-     * @param {Object} stats - 统计数据
-     * @returns {Promise} 更新结果
-     */
-    async updateStats(stats) {
-        try {
-            const response = await apiClient.post('/api/stats/update', stats);
+            const response = await apiClient.post('/submit-contest-scores', {
+                contestId,
+                project,
+                players
+            });
+            showSuccess('成绩提交成功');
             return response.data;
         } catch (error) {
-            showError('更新统计数据失败: ' + error.message);
+            showError('成绩提交失败: ' + error.message);
             throw error;
         }
     }
 };
+
 
 import { mockData } from './mockData.js';
 
@@ -383,36 +377,6 @@ export const mockAPI = {
         };
     },
 
-    /**
-     * 模拟获取统计数据
-     * @returns {Promise} 模拟数据
-     */
-    async getStats() {
-        await this.delay();
-        
-        const totalContests = mockData.weeklyContests.length;
-        const totalParticipants = new Set();
-        const totalRecords = mockData.schoolRecords.length;
-
-        // 计算参赛选手数量
-        mockData.weeklyContests.forEach(week => {
-            week.contests.forEach(contest => {
-                contest.results.forEach(result => {
-                    totalParticipants.add(result.name);
-                });
-            });
-        });
-        
-        return {
-            code: 200,
-            message: '获取统计数据成功',
-            data: {
-                totalContests,
-                totalParticipants: totalParticipants.size,
-                totalRecords
-            }
-        };
-    }
 };
 
 // 真实 API 客户端
@@ -540,13 +504,6 @@ export const realAPI = {
         return await this.request(`delete-contest?_id=${id}`);
     },
 
-    /**
-     * 获取统计数据
-     * @returns {Promise} 统计数据
-     */
-    async getStats() {
-        return await this.request('get-stats');
-    }
 };
 
 // 根据环境选择 API

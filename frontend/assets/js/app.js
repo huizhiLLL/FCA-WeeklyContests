@@ -6,7 +6,6 @@
 import { RecordsComponent } from './components/records.js';
 import { ContestsComponent } from './components/contests.js';
 import { animateCounter, showError } from './utils.js';
-import { statsAPI } from './api.js';
 import { mockData } from './mockData.js';
 
 /**
@@ -14,73 +13,16 @@ import { mockData } from './mockData.js';
  */
 class HomePage {
     constructor() {
-        this.stats = {
-            totalContests: 0,
-            totalParticipants: 0,
-            totalRecords: 0
-        };
     }
 
     /**
      * 初始化首页
      */
     async init() {
-        await this.loadStats();
         this.loadRecentActivity();
         this.bindEvents();
     }
 
-    /**
-     * 加载统计数据
-     */
-    async loadStats() {
-        try {
-            // 使用静态数据计算统计
-            const totalContests = mockData.weeklyContests.length;
-            const totalParticipants = new Set();
-            const totalRecords = mockData.schoolRecords.length;
-
-            // 计算参赛选手数量
-            mockData.weeklyContests.forEach(week => {
-                week.contests.forEach(contest => {
-                    contest.results.forEach(result => {
-                        totalParticipants.add(result.name);
-                    });
-                });
-            });
-
-            this.stats = {
-                totalContests,
-                totalParticipants: totalParticipants.size,
-                totalRecords
-            };
-            
-            this.renderStats();
-        } catch (error) {
-            console.error('加载统计数据失败:', error);
-            // 使用默认数据
-            this.renderStats();
-        }
-    }
-
-    /**
-     * 渲染统计数据
-     */
-    renderStats() {
-        const contestElement = document.getElementById('total-contests');
-        const participantElement = document.getElementById('total-participants');
-        const recordElement = document.getElementById('total-records');
-
-        if (contestElement) {
-            animateCounter(contestElement, 0, this.stats.totalContests, 1000);
-        }
-        if (participantElement) {
-            animateCounter(participantElement, 0, this.stats.totalParticipants, 1200);
-        }
-        if (recordElement) {
-            animateCounter(recordElement, 0, this.stats.totalRecords, 800);
-        }
-    }
 
     /**
      * 加载最新动态
@@ -338,99 +280,6 @@ class App {
     }
 }
 
-/**
- * 显示成绩统计开发中提示
- */
-function showStatsDevelopment() {
-    // 创建模态框
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        animation: fadeIn 0.3s ease;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            animation: slideUp 0.3s ease;
-        ">
-            <div style="
-                width: 80px;
-                height: 80px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 24px;
-            ">
-                <i class="fas fa-tools" style="font-size: 2rem; color: white;"></i>
-            </div>
-            <h3 style="
-                margin: 0 0 16px 0;
-                color: #333;
-                font-size: 1.5rem;
-                font-weight: 600;
-            ">功能开发中</h3>
-            <p style="
-                margin: 0 0 24px 0;
-                color: #666;
-                line-height: 1.6;
-            ">成绩统计功能正在开发中，敬请期待！</p>
-            <button onclick="this.closest('.modal').remove()" style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 500;
-                transition: transform 0.2s ease;
-            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                知道了
-            </button>
-        </div>
-    `;
-    
-    // 添加CSS动画
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    modal.className = 'modal';
-    document.body.appendChild(modal);
-    
-    // 点击背景关闭
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    });
-}
 
 /**
  * 导出数据功能（未来扩展）
@@ -460,7 +309,6 @@ function exportData(type) {
 }
 
 // 将全局函数挂载到 window 对象
-window.showStatsDevelopment = showStatsDevelopment;
 window.exportData = exportData;
 
 // 页面加载完成后初始化应用

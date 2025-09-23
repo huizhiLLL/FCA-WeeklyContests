@@ -28,6 +28,7 @@
     font-weight: 700;
     font-size: 1.25rem;
     color: var(--primary-color);
+    text-decoration: none;
 }
 
 .nav-logo i {
@@ -132,30 +133,6 @@
     font-style: italic;
 }
 
-.hero-stats {
-    display: flex;
-    justify-content: center;
-    gap: var(--spacing-2xl);
-    margin-top: var(--spacing-2xl);
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--text-white);
-    margin-bottom: var(--spacing-sm);
-}
-
-.stat-label {
-    font-size: 0.875rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
 
 .hero-visual {
     position: absolute;
@@ -735,6 +712,11 @@
 
 .project-section {
     margin-bottom: var(--spacing-xl);
+    display: none;
+}
+
+.project-section.active {
+    display: block;
 }
 
 .project-section:last-child {
