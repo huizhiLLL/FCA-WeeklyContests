@@ -1,4 +1,4 @@
-### [FCA Website](fca.hzcubing.club)
+### [FCA Website](http://fca.hzcubing.club)
 ---
 
 **Contributer**：huizhi     
