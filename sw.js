@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
     '/assets/js/api.js',
     '/assets/js/components/records.js',
     '/assets/js/components/contests.js',
-    '/assets/images/fdu.png',
+    '/assets/images/fdu.ico',
     '/manifest.json'
 ];
 
@@ -256,8 +256,8 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: event.data ? event.data.text() : '您有新的消息',
-        icon: '/assets/images/fdu.png',
-        badge: '/assets/images/fdu.png',
+        icon: '/assets/images/fdu.ico',
+        badge: '/assets/images/fdu.ico',
         vibrate: [200, 100, 200],
         data: {
             dateOfArrival: Date.now(),

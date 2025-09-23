@@ -14,9 +14,9 @@
   "categories": ["sports", "education", "productivity"],
   "icons": [
     {
-      "src": "assets/images/fdu.png",
+      "src": "assets/images/fdu.ico",
       "sizes": "any",
-      "type": "image/png",
+      "type": "image/x-icon",
       "purpose": "any maskable"
     }
   ],
