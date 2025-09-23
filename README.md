@@ -2,6 +2,6 @@
 ---
 
 **Contributer**：huizhi     
-**QQ**：3169164181@qq.com 
+**QQ**：3169164181
 
 
