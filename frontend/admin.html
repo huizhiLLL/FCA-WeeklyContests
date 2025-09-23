@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - FCA Website</title>
+    <meta name="description" content="FCA 管理后台">
+    <meta name="keywords" content="FCA,管理,后台,魔方">
+    
+    <!-- PWA 支持 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="FCA">
+    
+    <!-- 图标 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/icon-16x16.png">
+    <link rel="apple-touch-icon" href="assets/images/icon-192x192.png">
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 管理后台专用样式 -->
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+        
+        .admin-header {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .admin-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .admin-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        
+        .admin-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+            background: var(--gray-100);
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-lg);
+            width: fit-content;
+        }
+        
+        .admin-tab {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .admin-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-primary);
+        }
+        
+        .admin-tab.active {
+            background: var(--primary-color);
+            color: var(--text-white);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .admin-content {
+            display: none;
+        }
+        
+        .admin-content.active {
+            display: block;
+        }
+        
+        .admin-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .admin-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--text-white);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--text-primary);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: var(--text-white);
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-success {
+            background: var(--accent-color);
+            color: var(--text-white);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--spacing-lg);
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .data-table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .data-table td {
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+        
+        .data-table tr:hover {
+            background: var(--gray-50);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .status-badge {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-inactive {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--text-secondary);
+        }
+        
+        .error {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: var(--spacing-md);
+            }
+            
+            .admin-tabs {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .data-table {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <i class="fas fa-cube"></i>
+                FCA Website
+            </a>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    首页
+                </a>
+                <a href="school-records.html" class="nav-link">
+                    <i class="fas fa-trophy"></i>
+                    校记录
+                </a>
+                <a href="weekly-contests.html" class="nav-link">
+                    <i class="fas fa-calendar-week"></i>
+                    周赛记录
+                </a>
+                <a href="admin.html" class="nav-link active">
+                    <i class="fas fa-cog"></i>
+                    管理后台
+                </a>
+            </div>
+            <div class="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="main-content">
+        <div class="admin-container">
+            <!-- 管理后台头部 -->
+            <div class="admin-header">
+                <h1 class="admin-title">
+                    <i class="fas fa-cog"></i>
+                    管理后台
+                </h1>
+                <p class="admin-subtitle">管理系统数据、用户权限和系统设置</p>
+            </div>
+
+            <!-- 统计概览 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-records">0</div>
+                    <div class="stat-label">校记录总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-contests">0</div>
+                    <div class="stat-label">周赛总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-participants">0</div>
+                    <div class="stat-label">参赛人数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-users">0</div>
+                    <div class="stat-label">活跃用户</div>
+                </div>
+            </div>
+
+            <!-- 管理标签页 -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="records">
+                    <i class="fas fa-trophy"></i>
+                    校记录管理
+                </button>
+                <button class="admin-tab" data-tab="contests">
+                    <i class="fas fa-calendar-week"></i>
+                    周赛管理
+                </button>
+                <button class="admin-tab" data-tab="users">
+                    <i class="fas fa-users"></i>
+                    用户管理
+                </button>
+                <button class="admin-tab" data-tab="settings">
+                    <i class="fas fa-cog"></i>
+                    系统设置
+                </button>
+            </div>
+
+            <!-- 校记录管理 -->
+            <div id="records-tab" class="admin-content active">
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-plus"></i>
+                        添加校记录
+                    </h3>
+                    <form id="add-record-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="record-project">项目</label>
+                                <select id="record-project" class="form-control" required>
+                                    <option value="">选择项目</option>
+                                    <option value="三阶">三阶</option>
+                                    <option value="二阶">二阶</option>
+                                    <option value="四阶">四阶</option>
+                                    <option value="五阶">五阶</option>
+                                    <option value="六阶">六阶</option>
+                                    <option value="七阶">七阶</option>
+                                    <option value="三阶盲拧">三阶盲拧</option>
+                                    <option value="四阶盲拧">四阶盲拧</option>
+                                    <option value="五阶盲拧">五阶盲拧</option>
+                                    <option value="最少步">最少步</option>
+                                    <option value="三阶单手">三阶单手</option>
+                                    <option value="魔表">魔表</option>
+                                    <option value="五魔方">五魔方</option>
+                                    <option value="金字塔">金字塔</option>
+                                    <option value="斜转">斜转</option>
+                                    <option value="SQ1">SQ1</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="record-name">姓名</label>
+                                <input type="text" id="record-name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="record-grade">年级</label>
+                                <input type="text" id="record-grade" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="record-single">单次成绩</label>
+                                <input type="text" id="record-single" class="form-control" placeholder="如: 5.89">
+                            </div>
+                            <div class="form-group">
+                                <label for="record-average">平均成绩</label>
+                                <input type="text" id="record-average" class="form-control" placeholder="如: 7.98">
+                            </div>
+                            <div class="form-group">
+                                <label for="record-date">日期</label>
+                                <input type="date" id="record-date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="record-competition">比赛名称</label>
+                            <input type="text" id="record-competition" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                添加记录
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i>
+                                重置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-list"></i>
+                        校记录列表
+                    </h3>
+                    <div id="records-list">
+                        <div class="loading">
+                            <div class="loading"></div>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 周赛管理 -->
+            <div id="contests-tab" class="admin-content">
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-plus"></i>
+                        添加周赛记录
+                    </h3>
+                    <form id="add-contest-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="contest-week">周次</label>
+                                <input type="text" id="contest-week" class="form-control" required placeholder="如: 第1周">
+                            </div>
+                            <div class="form-group">
+                                <label for="contest-date">日期</label>
+                                <input type="date" id="contest-date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="contest-project">项目</label>
+                            <select id="contest-project" class="form-control" required>
+                                <option value="">选择项目</option>
+                                <option value="三阶">三阶</option>
+                                <option value="二阶">二阶</option>
+                                <option value="四阶">四阶</option>
+                                <option value="五阶">五阶</option>
+                                <option value="六阶">六阶</option>
+                                <option value="七阶">七阶</option>
+                                <option value="三阶盲拧">三阶盲拧</option>
+                                <option value="四阶盲拧">四阶盲拧</option>
+                                <option value="五阶盲拧">五阶盲拧</option>
+                                <option value="最少步">最少步</option>
+                                <option value="三阶单手">三阶单手</option>
+                                <option value="魔表">魔表</option>
+                                <option value="五魔方">五魔方</option>
+                                <option value="金字塔">金字塔</option>
+                                <option value="斜转">斜转</option>
+                                <option value="SQ1">SQ1</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                添加周赛
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i>
+                                重置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-list"></i>
+                        周赛记录列表
+                    </h3>
+                    <div id="contests-list">
+                        <div class="loading">
+                            <div class="loading"></div>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 用户管理 -->
+            <div id="users-tab" class="admin-content">
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-users"></i>
+                        用户管理
+                    </h3>
+                    <div class="error">
+                        <i class="fas fa-tools" style="font-size: 2rem; margin-bottom: 16px; display: block; color: var(--primary-color);"></i>
+                        <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">功能开发中</h3>
+                        <p style="margin: 0; font-size: 0.9rem;">用户管理功能正在开发中，敬请期待！</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统设置 -->
+            <div id="settings-tab" class="admin-content">
+                <div class="admin-card">
+                    <h3>
+                        <i class="fas fa-cog"></i>
+                        系统设置
+                    </h3>
+                    <div class="error">
+                        <i class="fas fa-tools" style="font-size: 2rem; margin-bottom: 16px; display: block; color: var(--primary-color);"></i>
+                        <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">功能开发中</h3>
+                        <p style="margin: 0; font-size: 0.9rem;">系统设置功能正在开发中，敬请期待！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>FCA Website</h4>
+                    <p>复旦大学魔方社官方成绩记录系统</p>
+                </div>
+                <div class="footer-section">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="index.html">首页</a></li>
+                        <li><a href="school-records.html">校记录</a></li>
+                        <li><a href="weekly-contests.html">周赛记录</a></li>
+                        <li><a href="admin.html">管理后台</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>联系我们</h4>
+                    <p>如有问题，请联系FCA管理员</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 FCA Website. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script type="module" src="assets/js/app.js"></script>
+    <script type="module" src="assets/js/pwa.js"></script>
+    <script type="module">
+        // 管理后台专用脚本
+        import { recordsAPI, contestsAPI, statsAPI } from './assets/js/api.js';
+        import { showSuccess, showError, animateCounter } from './assets/js/utils.js';
+
+        class AdminManager {
+            constructor() {
+                this.currentTab = 'records';
+                this.init();
+            }
+
+            async init() {
+                await this.loadStats();
+                this.bindEvents();
+                this.loadRecords();
+            }
+
+            async loadStats() {
+                try {
+                    const response = await statsAPI.getStats();
+                    const stats = response.data || {};
+                    
+                    this.animateStat('total-records', stats.totalRecords || 0);
+                    this.animateStat('total-contests', stats.totalContests || 0);
+                    this.animateStat('total-participants', stats.totalParticipants || 0);
+                    this.animateStat('active-users', stats.activeUsers || 0);
+                } catch (error) {
+                    console.error('加载统计数据失败:', error);
+                }
+            }
+
+            animateStat(elementId, value) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    animateCounter(element, 0, value, 1000);
+                }
+            }
+
+            bindEvents() {
+                // 标签页切换
+                document.querySelectorAll('.admin-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const tabName = e.currentTarget.dataset.tab;
+                        this.switchTab(tabName);
+                    });
+                });
+
+                // 添加校记录表单
+                const addRecordForm = document.getElementById('add-record-form');
+                if (addRecordForm) {
+                    addRecordForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.addRecord();
+                    });
+                }
+
+                // 添加周赛表单
+                const addContestForm = document.getElementById('add-contest-form');
+                if (addContestForm) {
+                    addContestForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.addContest();
+                    });
+                }
+            }
+
+            switchTab(tabName) {
+                // 更新标签状态
+                document.querySelectorAll('.admin-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                // 更新内容显示
+                document.querySelectorAll('.admin-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+
+                this.currentTab = tabName;
+
+                // 加载对应数据
+                if (tabName === 'records') {
+                    this.loadRecords();
+                } else if (tabName === 'contests') {
+                    this.loadContests();
+                }
+            }
+
+            async loadRecords() {
+                const recordsList = document.getElementById('records-list');
+                if (!recordsList) return;
+
+                try {
+                    recordsList.innerHTML = '<div class="loading"><div class="loading"></div><p>加载中...</p></div>';
+                    
+                    const response = await recordsAPI.getRecords();
+                    const records = response.data || [];
+                    
+                    this.renderRecords(records);
+                } catch (error) {
+                    recordsList.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+                }
+            }
+
+            renderRecords(records) {
+                const recordsList = document.getElementById('records-list');
+                if (!recordsList) return;
+
+                if (records.length === 0) {
+                    recordsList.innerHTML = '<div class="error">暂无记录</div>';
+                    return;
+                }
+
+                const tableHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>项目</th>
+                                <th>姓名</th>
+                                <th>年级</th>
+                                <th>单次</th>
+                                <th>平均</th>
+                                <th>日期</th>
+                                <th>比赛</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${records.map(record => `
+                                <tr>
+                                    <td>${record.project}</td>
+                                    <td>${record.name}</td>
+                                    <td>${record.grade}</td>
+                                    <td>${record.single || '-'}</td>
+                                    <td>${record.average || '-'}</td>
+                                    <td>${record.date}</td>
+                                    <td>${record.competition}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary" onclick="adminManager.editRecord('${record._id}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger" onclick="adminManager.deleteRecord('${record._id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                recordsList.innerHTML = tableHTML;
+            }
+
+            async loadContests() {
+                const contestsList = document.getElementById('contests-list');
+                if (!contestsList) return;
+
+                try {
+                    contestsList.innerHTML = '<div class="loading"><div class="loading"></div><p>加载中...</p></div>';
+                    
+                    const response = await contestsAPI.getContests();
+                    const contests = response.data || [];
+                    
+                    this.renderContests(contests);
+                } catch (error) {
+                    contestsList.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+                }
+            }
+
+            renderContests(contests) {
+                const contestsList = document.getElementById('contests-list');
+                if (!contestsList) return;
+
+                if (contests.length === 0) {
+                    contestsList.innerHTML = '<div class="error">暂无记录</div>';
+                    return;
+                }
+
+                const tableHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>周次</th>
+                                <th>日期</th>
+                                <th>项目</th>
+                                <th>参赛人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${contests.map(contest => `
+                                <tr>
+                                    <td>${contest.week}</td>
+                                    <td>${contest.date}</td>
+                                    <td>${contest.contests.map(c => c.project).join(', ')}</td>
+                                    <td>${contest.contests.reduce((sum, c) => sum + c.results.length, 0)}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary" onclick="adminManager.editContest('${contest._id}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-danger" onclick="adminManager.deleteContest('${contest._id}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                contestsList.innerHTML = tableHTML;
+            }
+
+            async addRecord() {
+                const form = document.getElementById('add-record-form');
+                const formData = new FormData(form);
+                
+                const recordData = {
+                    project: formData.get('record-project') || document.getElementById('record-project').value,
+                    name: formData.get('record-name') || document.getElementById('record-name').value,
+                    grade: formData.get('record-grade') || document.getElementById('record-grade').value,
+                    single: formData.get('record-single') || document.getElementById('record-single').value,
+                    average: formData.get('record-average') || document.getElementById('record-average').value,
+                    date: formData.get('record-date') || document.getElementById('record-date').value,
+                    competition: formData.get('record-competition') || document.getElementById('record-competition').value
+                };
+
+                try {
+                    await recordsAPI.createRecord(recordData);
+                    form.reset();
+                    this.loadRecords();
+                } catch (error) {
+                    // 错误已在 API 中处理
+                }
+            }
+
+            async addContest() {
+                const form = document.getElementById('add-contest-form');
+                const formData = new FormData(form);
+                
+                const contestData = {
+                    week: formData.get('contest-week') || document.getElementById('contest-week').value,
+                    date: formData.get('contest-date') || document.getElementById('contest-date').value,
+                    project: formData.get('contest-project') || document.getElementById('contest-project').value
+                };
+
+                try {
+                    await contestsAPI.createContest(contestData);
+                    form.reset();
+                    this.loadContests();
+                } catch (error) {
+                    // 错误已在 API 中处理
+                }
+            }
+
+            async editRecord(id) {
+                showError('编辑功能开发中');
+            }
+
+            async deleteRecord(id) {
+                if (confirm('确定要删除这条记录吗？')) {
+                    try {
+                        await recordsAPI.deleteRecord(id);
+                        this.loadRecords();
+                    } catch (error) {
+                        // 错误已在 API 中处理
+                    }
+                }
+            }
+
+            async editContest(id) {
+                showError('编辑功能开发中');
+            }
+
+            async deleteContest(id) {
+                if (confirm('确定要删除这条周赛记录吗？')) {
+                    try {
+                        await contestsAPI.deleteContest(id);
+                        this.loadContests();
+                    } catch (error) {
+                        // 错误已在 API 中处理
+                    }
+                }
+            }
+        }
+
+        // 创建全局管理实例
+        window.adminManager = new AdminManager();
+    </script>
+</body>
+</html>
