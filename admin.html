@@ -1382,8 +1382,10 @@
                                             </select>
                                         </div>
                                         <div class="form-group">
-                                            <label for="times-input">成绩（用空格分隔）：</label>
-                                            <input type="text" id="times-input" class="form-control" placeholder="如：5.89 6.12 5.45 6.01 5.78">
+                                            <label for="times-input">成绩（用空格分隔）：
+                                                <i class="fas fa-info-circle score-format-info" title="支持格式：普通成绩(5.89)、+2成绩(6.12+)、DNF成绩(DNF)"></i>
+                                            </label>
+                                            <input type="text" id="times-input" class="form-control" placeholder="如：5.89 6.12 5.45 6.01 5.78 或 5.89 6.12+ 5.45 DNF 6.01">
                                         </div>
                                         <div class="form-group">
                                             <button type="button" class="btn btn-primary" onclick="quickAddScore()">
@@ -2161,7 +2163,17 @@
             // 生成成绩项HTML
             generateScoreItem(result, index) {
                 const times = result.times || [];
+                
+                // 对成绩进行排序，DNF排最后，其他按时间排序
                 const sortedTimes = [...times].sort((a, b) => {
+                    // 如果都是对象（带状态），按时间排序
+                    if (typeof a === 'object' && typeof b === 'object') {
+                        if (a.status === 'dnf' && b.status === 'dnf') return 0;
+                        if (a.status === 'dnf') return 1;
+                        if (b.status === 'dnf') return -1;
+                        return (a.time || 0) - (b.time || 0);
+                    }
+                    // 兼容旧格式
                     const timeA = typeof a === 'string' ? parseFloat(a.replace(':', '.')) : a;
                     const timeB = typeof b === 'string' ? parseFloat(b.replace(':', '.')) : b;
                     return timeA - timeB;
@@ -2189,9 +2201,21 @@
                                 ${times.map(time => {
                                     const isBest = time === sortedTimes[0];
                                     const isWorst = time === sortedTimes[sortedTimes.length - 1];
+                                    
+                                    // 处理带状态的成绩显示
+                                    let displayTime, statusClass = '';
+                                    if (typeof time === 'object' && time.status) {
+                                        displayTime = time.display;
+                                        if (time.status === 'dnf') statusClass = 'dnf';
+                                        else if (time.status === 'plus2') statusClass = 'plus2';
+                                    } else {
+                                        // 兼容旧格式
+                                        displayTime = this.formatTime(time);
+                                    }
+                                    
                                     return `
-                                        <span class="score-time ${isBest ? 'best' : isWorst ? 'worst' : ''}">
-                                            ${this.formatTime(time)}
+                                        <span class="score-time ${isBest ? 'best' : isWorst ? 'worst' : ''} ${statusClass}">
+                                            ${displayTime}
                                         </span>
                                     `;
                                 }).join('')}
@@ -2368,30 +2392,70 @@
                     return { valid: false, message: '请输入成绩' };
                 }
                 
-                // 检查是否只包含数字、小数点和空格
-                const validPattern = /^[\d\s.]+$/;
-                if (!validPattern.test(timesInput)) {
-                    return { valid: false, message: '请输入正确的格式：只能包含数字、小数点和空格' };
-                }
-                
                 // 解析成绩
                 const times = timesInput.split(/\s+/).filter(time => time.trim());
                 if (times.length === 0) {
                     return { valid: false, message: '请输入有效的成绩' };
                 }
                 
-                // 验证每个成绩是否为有效数字
+                // 解析每个成绩，支持+2和DNF格式
+                const parsedTimes = [];
                 for (let i = 0; i < times.length; i++) {
                     const time = times[i].trim();
                     if (!time) continue;
                     
-                    const numTime = parseFloat(time);
-                    if (isNaN(numTime) || numTime <= 0) {
+                    const parsed = this.parseTimeWithStatus(time);
+                    if (!parsed.valid) {
                         return { valid: false, message: `第${i + 1}个成绩格式无效：${time}` };
                     }
+                    parsedTimes.push(parsed);
                 }
                 
-                return { valid: true, times: times };
+                return { valid: true, times: parsedTimes };
+            }
+
+            // 解析带状态的成绩
+            parseTimeWithStatus(timeStr) {
+                const upperTime = timeStr.toUpperCase();
+                
+                // 检查是否为DNF
+                if (upperTime === 'DNF') {
+                    return {
+                        valid: true,
+                        time: null,
+                        status: 'dnf',
+                        display: 'DNF'
+                    };
+                }
+                
+                // 检查是否为+2格式（以+结尾）
+                if (timeStr.endsWith('+')) {
+                    const baseTime = timeStr.slice(0, -1);
+                    const numTime = parseFloat(baseTime);
+                    if (isNaN(numTime) || numTime <= 0) {
+                        return { valid: false };
+                    }
+                    return {
+                        valid: true,
+                        time: numTime,
+                        status: 'plus2',
+                        display: timeStr,
+                        originalTime: numTime - 2
+                    };
+                }
+                
+                // 普通成绩
+                const numTime = parseFloat(timeStr);
+                if (isNaN(numTime) || numTime <= 0) {
+                    return { valid: false };
+                }
+                
+                return {
+                    valid: true,
+                    time: numTime,
+                    status: 'normal',
+                    display: timeStr
+                };
             }
 
             // 快速录入成绩
@@ -2414,7 +2478,7 @@
                     return;
                 }
                 
-                const times = validation.times;
+                const parsedTimes = validation.times;
                 
                 try {
                     // 获取当前项目的所有成绩
@@ -2427,7 +2491,7 @@
                     const existingIndex = currentResults.findIndex(r => r.name === playerName && r.round == roundInput);
                     const newResult = {
                         name: playerName,
-                        times: times,
+                        times: parsedTimes,
                         round: parseInt(roundInput),
                         submittedAt: new Date().toISOString(),
                         submittedBy: 'admin'
@@ -2466,7 +2530,11 @@
                 const scoreActions = scoreItem.querySelector('.score-actions');
                 
                 // 获取当前数据
-                const playerName = scoreInfo.querySelector('.score-player').textContent;
+                const playerName = scoreInfo.querySelector('.player-name').textContent;
+                const roundBadge = scoreInfo.querySelector('.round-badge');
+                const currentRound = roundBadge ? roundBadge.textContent.match(/\d+/)[0] : '1';
+                
+                // 获取成绩数据（支持状态格式）
                 const times = Array.from(scoreInfo.querySelectorAll('.score-time')).map(span => {
                     const text = span.textContent.replace(/[()]/g, '').trim();
                     return text;
@@ -2478,11 +2546,15 @@
                 editForm.innerHTML = `
                     <input type="text" class="player-name-edit" value="${playerName}" placeholder="选手姓名">
                     <select class="round-edit">
-                        <option value="1" ${result.round == 1 ? 'selected' : ''}>第1轮</option>
-                        <option value="2" ${result.round == 2 ? 'selected' : ''}>第2轮</option>
-                        <option value="3" ${result.round == 3 ? 'selected' : ''}>第3轮</option>
+                        <option value="1" ${currentRound == 1 ? 'selected' : ''}>第1轮</option>
+                        <option value="2" ${currentRound == 2 ? 'selected' : ''}>第2轮</option>
+                        <option value="3" ${currentRound == 3 ? 'selected' : ''}>第3轮</option>
                     </select>
                     <input type="text" class="times-edit" value="${times.join(' ')}" placeholder="成绩（用空格分隔）">
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle score-format-info" title="支持格式：普通成绩(5.89)、+2成绩(6.12+)、DNF成绩(DNF)"></i>
+                        悬停查看支持格式
+                    </small>
                     <button class="btn btn-sm btn-primary" onclick="saveScoreEdit(${index})">
                         <i class="fas fa-save"></i>
                     </button>
@@ -2522,7 +2594,7 @@
                     return;
                 }
                 
-                const times = validation.times;
+                const parsedTimes = validation.times;
                 
                 try {
                     // 获取当前项目的所有成绩
@@ -2535,7 +2607,7 @@
                     if (index < currentResults.length) {
                         currentResults[index] = {
                             name: playerName,
-                            times: times,
+                            times: parsedTimes,
                             round: parseInt(roundInput),
                             submittedAt: new Date().toISOString(),
                             submittedBy: 'admin'

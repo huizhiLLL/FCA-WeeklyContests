@@ -205,45 +205,76 @@ export class ContestsComponent {
         const resultsWithAverage = results.map(result => {
             const times = result.times || [];
             if (times.length === 0) {
-                return { ...result, average: null, single: null };
+                return { ...result, average: null, single: null, hasDNF: false };
             }
             
-            // 转换时间格式并排序
-            const numericTimes = times.map(time => {
+            // 解析带状态的成绩
+            const parsedTimes = times.map(time => {
+                if (typeof time === 'object' && time.status) {
+                    return time;
+                }
+                // 兼容旧格式
                 if (typeof time === 'string' && time.includes(':')) {
                     const parts = time.split(':');
-                    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+                    return {
+                        time: parseFloat(parts[0]) * 60 + parseFloat(parts[1]),
+                        status: 'normal',
+                        display: time
+                    };
                 }
-                return parseFloat(time) || 0;
-            }).filter(time => time > 0);
+                return {
+                    time: parseFloat(time) || 0,
+                    status: 'normal',
+                    display: time
+                };
+            });
             
-            if (numericTimes.length === 0) {
-                return { ...result, average: null, single: null };
+            // 检查是否有DNF
+            const hasDNF = parsedTimes.some(t => t.status === 'dnf');
+            
+            // 获取有效成绩（非DNF）
+            const validTimes = parsedTimes.filter(t => t.status !== 'dnf' && t.time > 0);
+            
+            if (validTimes.length === 0) {
+                return { ...result, average: null, single: null, hasDNF: hasDNF };
             }
             
             // 计算单次最好成绩
-            const single = Math.min(...numericTimes);
+            const single = Math.min(...validTimes.map(t => t.time));
             
-            // 计算平均成绩（去掉最好和最差，取中间三个的平均）
+            // 计算平均成绩
             let average = null;
-            if (numericTimes.length >= 3) {
-                const sortedTimes = [...numericTimes].sort((a, b) => a - b);
+            if (validTimes.length >= 3) {
+                const sortedTimes = [...validTimes].sort((a, b) => a.time - b.time);
                 const middleTimes = sortedTimes.slice(1, -1); // 去掉最好和最差
-                average = middleTimes.reduce((sum, time) => sum + time, 0) / middleTimes.length;
-            } else if (numericTimes.length >= 1) {
-                average = numericTimes.reduce((sum, time) => sum + time, 0) / numericTimes.length;
+                average = middleTimes.reduce((sum, t) => sum + t.time, 0) / middleTimes.length;
+            } else if (validTimes.length >= 1) {
+                average = validTimes.reduce((sum, t) => sum + t.time, 0) / validTimes.length;
             }
             
             return {
                 ...result,
                 single: single,
                 average: average,
-                numericTimes: numericTimes
+                hasDNF: hasDNF,
+                parsedTimes: parsedTimes
             };
         });
         
-        // 按平均成绩排序（平均成绩越小排名越高）
+        // 按平均成绩排序，DNF排最后
         const sortedResults = resultsWithAverage.sort((a, b) => {
+            // 都有DNF，按平均成绩排序
+            if (a.hasDNF && b.hasDNF) {
+                if (a.average === null && b.average === null) return 0;
+                if (a.average === null) return 1;
+                if (b.average === null) return -1;
+                return a.average - b.average;
+            }
+            // 只有a有DNF，a排后面
+            if (a.hasDNF && !b.hasDNF) return 1;
+            // 只有b有DNF，b排后面
+            if (!a.hasDNF && b.hasDNF) return -1;
+            // 都没有DNF，按平均成绩排序
             if (a.average === null && b.average === null) return 0;
             if (a.average === null) return 1;
             if (b.average === null) return -1;
@@ -253,16 +284,15 @@ export class ContestsComponent {
         // 添加排名
         let currentRank = 1;
         let lastAverage = null;
+        let lastHasDNF = false;
         
         return sortedResults.map((result, index) => {
-            if (result.average !== null) {
-                if (lastAverage !== null && Math.abs(result.average - lastAverage) > 0.01) {
-                    currentRank = index + 1;
-                }
-                lastAverage = result.average;
-            } else {
+            if (result.hasDNF !== lastHasDNF || 
+                (result.average !== null && lastAverage !== null && Math.abs(result.average - lastAverage) > 0.01)) {
                 currentRank = index + 1;
             }
+            lastAverage = result.average;
+            lastHasDNF = result.hasDNF;
             
             return {
                 ...result,
@@ -281,11 +311,34 @@ export class ContestsComponent {
         const single = result.single;
         const average = result.average;
         
-        // 对原始时间进行排序用于显示
-        const sortedTimes = [...(result.times || [])].sort((a, b) => {
-            const timeA = typeof a === 'string' ? parseFloat(a.replace(':', '.')) : a;
-            const timeB = typeof b === 'string' ? parseFloat(b.replace(':', '.')) : b;
-            return timeA - timeB;
+        // 处理带状态的成绩显示
+        const times = result.times || [];
+        const parsedTimes = result.parsedTimes || times.map(time => {
+            if (typeof time === 'object' && time.status) {
+                return time;
+            }
+            // 兼容旧格式
+            if (typeof time === 'string' && time.includes(':')) {
+                const parts = time.split(':');
+                return {
+                    time: parseFloat(parts[0]) * 60 + parseFloat(parts[1]),
+                    status: 'normal',
+                    display: time
+                };
+            }
+            return {
+                time: parseFloat(time) || 0,
+                status: 'normal',
+                display: time
+            };
+        });
+        
+        // 对成绩进行排序用于显示
+        const sortedTimes = [...parsedTimes].sort((a, b) => {
+            if (a.status === 'dnf' && b.status === 'dnf') return 0;
+            if (a.status === 'dnf') return 1;
+            if (b.status === 'dnf') return -1;
+            return (a.time || 0) - (b.time || 0);
         });
 
         // 轮数显示
@@ -300,16 +353,16 @@ export class ContestsComponent {
                 </td>
                 <td>${result.name}</td>
                 <td>${single ? this.formatTime(single) : '-'}</td>
-                <td>${average ? this.formatTime(average) : '-'}</td>
+                <td>${average ? this.formatTime(average) : (result.hasDNF ? 'DNF' : '-')}</td>
                 <td>
                     <div class="times-list">
-                        ${(result.times || []).map(time => {
+                        ${parsedTimes.map(time => {
                             const isBest = time === sortedTimes[0];
                             const isWorst = time === sortedTimes[sortedTimes.length - 1];
                             const displayTime = isBest || isWorst ? 
-                                `( ${this.formatTime(time)} )` : this.formatTime(time);
+                                `( ${time.display} )` : time.display;
                             return `
-                                <span class="time-item ${isBest ? 'best' : isWorst ? 'worst' : ''}">
+                                <span class="time-item ${isBest ? 'best' : isWorst ? 'worst' : ''} ${time.status === 'dnf' ? 'dnf' : time.status === 'plus2' ? 'plus2' : ''}">
                                     ${displayTime}
                                 </span>
                             `;

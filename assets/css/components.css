@@ -727,6 +727,43 @@
     font-size: 1.2rem;
 }
 
+/* 成绩状态样式 */
+.score-time.dnf,
+.time-item.dnf {
+    color: #dc2626;
+    font-weight: bold;
+    background: rgba(220, 38, 38, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.score-time.plus2,
+.time-item.plus2 {
+    color: #f59e0b;
+    font-weight: bold;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.score-time.normal,
+.time-item.normal {
+    color: var(--text-primary);
+}
+
+/* 成绩格式信息图标样式 */
+.score-format-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-left: 4px;
+    cursor: help;
+    transition: color 0.2s ease;
+}
+
+.score-format-info:hover {
+    color: var(--primary-color);
+}
+
 .contests-timeline {
     display: flex;
     flex-direction: column;
