@@ -6,6 +6,9 @@
 import { formatTime, getRankingClass, showError } from '../utils.js';
 import { contestsAPI } from '../api.js';
 import { mockData } from '../mockData.js';
+import { getProjectConfig, getProjectScoringMethod } from '../projectConfig.js';
+import { formatTimeDisplay, parseTimeString } from '../timeUtils.js';
+import { processPlayerResult, calculateProjectRanking } from '../scoringUtils.js';
 
 /**
  * 周赛记录组件类
@@ -123,7 +126,8 @@ export class ContestsComponent {
                         return `
                             <button class="project-tab ${isActive ? 'active' : ''}" 
                                     onclick="switchProject('${week.week}', '${project}')" 
-                                    data-project="${project}">
+                                    data-project="${project}"
+                                    title="${this.getProjectTooltip(project)}">
                                 ${project}
                                 ${hasResults ? `<span class="result-count">(${contest.results.length})</span>` : ''}
                             </button>
@@ -137,7 +141,12 @@ export class ContestsComponent {
                         return `
                             <div class="project-section ${isActive ? 'active' : ''}" data-project="${contest.project}">
                                 <div class="project-header">
-                                    <h3 class="project-title">${contest.project}</h3>
+                                    <div class="project-header-left">
+                                        <h3 class="project-title">${contest.project}</h3>
+                                        <div class="project-config-info">
+                                            ${this.getProjectConfigDisplay(contest.project)}
+                                        </div>
+                                    </div>
                                     <div class="round-filter">
                                         <label for="round-filter-${week.week}-${contest.project}">轮数：</label>
                                         <select id="round-filter-${week.week}-${contest.project}" class="round-select" onchange="filterByRound('${week.week}', '${contest.project}', this.value)">
@@ -165,14 +174,21 @@ export class ContestsComponent {
      * @returns {string} HTML字符串
      */
     generateContestTable(contest, roundFilter = '') {
+        const projectName = contest.project;
+        const config = getProjectConfig(projectName);
+        
         // 根据轮数筛选结果
         let filteredResults = contest.results || [];
         if (roundFilter) {
             filteredResults = filteredResults.filter(result => result.round == roundFilter);
         }
         
-        // 对结果进行排名计算
-        const rankedResults = this.calculateRankings(filteredResults);
+        // 使用新的排名计算系统
+        const rankedResults = calculateProjectRanking(filteredResults, projectName);
+        
+        // 根据项目配置生成表头
+        const tableHeaders = this.generateTableHeaders(config);
+        const timesColumnHeader = this.getTimesColumnHeader(config);
         
         return `
             <table class="contest-table">
@@ -180,218 +196,234 @@ export class ContestsComponent {
                     <tr>
                         <th>排名</th>
                         <th>姓名</th>
-                        <th>单次</th>
-                        <th>平均</th>
-                        <th>五次成绩</th>
+                        ${tableHeaders}
+                        <th>${timesColumnHeader}</th>
                         <th>轮数</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${rankedResults.map(result => this.generateResultRow(result)).join('')}
+                    ${rankedResults.map(result => this.generateResultRow(result, config)).join('')}
                 </tbody>
             </table>
         `;
     }
 
     /**
-     * 计算排名
-     * @param {Array} results - 结果数组
-     * @returns {Array} 带排名的结果数组
+     * 根据项目配置生成表头
+     * @param {Object} config - 项目配置
+     * @returns {string} 表头HTML
      */
-    calculateRankings(results) {
-        if (!results || results.length === 0) return [];
-        
-        // 为每个结果计算平均成绩
-        const resultsWithAverage = results.map(result => {
-            const times = result.times || [];
-            if (times.length === 0) {
-                return { ...result, average: null, single: null, hasDNF: false };
-            }
-            
-            // 解析带状态的成绩
-            const parsedTimes = times.map(time => {
-                if (typeof time === 'object' && time.status) {
-                    return time;
-                }
-                // 兼容旧格式
-                if (typeof time === 'string' && time.includes(':')) {
-                    const parts = time.split(':');
-                    return {
-                        time: parseFloat(parts[0]) * 60 + parseFloat(parts[1]),
-                        status: 'normal',
-                        display: time
-                    };
-                }
-                return {
-                    time: parseFloat(time) || 0,
-                    status: 'normal',
-                    display: time
-                };
-            });
-            
-            // 检查是否有DNF
-            const hasDNF = parsedTimes.some(t => t.status === 'dnf');
-            
-            // 获取有效成绩（非DNF）
-            const validTimes = parsedTimes.filter(t => t.status !== 'dnf' && t.time > 0);
-            
-            if (validTimes.length === 0) {
-                return { ...result, average: null, single: null, hasDNF: hasDNF };
-            }
-            
-            // 计算单次最好成绩
-            const single = Math.min(...validTimes.map(t => t.time));
-            
-            // 计算平均成绩
-            let average = null;
-            if (validTimes.length >= 3) {
-                const sortedTimes = [...validTimes].sort((a, b) => a.time - b.time);
-                const middleTimes = sortedTimes.slice(1, -1); // 去掉最好和最差
-                average = middleTimes.reduce((sum, t) => sum + t.time, 0) / middleTimes.length;
-            } else if (validTimes.length >= 1) {
-                average = validTimes.reduce((sum, t) => sum + t.time, 0) / validTimes.length;
-            }
-            
-            return {
-                ...result,
-                single: single,
-                average: average,
-                hasDNF: hasDNF,
-                parsedTimes: parsedTimes
-            };
-        });
-        
-        // 按平均成绩排序，DNF排最后
-        const sortedResults = resultsWithAverage.sort((a, b) => {
-            // 都有DNF，按平均成绩排序
-            if (a.hasDNF && b.hasDNF) {
-                if (a.average === null && b.average === null) return 0;
-                if (a.average === null) return 1;
-                if (b.average === null) return -1;
-                return a.average - b.average;
-            }
-            // 只有a有DNF，a排后面
-            if (a.hasDNF && !b.hasDNF) return 1;
-            // 只有b有DNF，b排后面
-            if (!a.hasDNF && b.hasDNF) return -1;
-            // 都没有DNF，按平均成绩排序
-            if (a.average === null && b.average === null) return 0;
-            if (a.average === null) return 1;
-            if (b.average === null) return -1;
-            return a.average - b.average;
-        });
-        
-        // 添加排名
-        let currentRank = 1;
-        let lastAverage = null;
-        let lastHasDNF = false;
-        
-        return sortedResults.map((result, index) => {
-            if (result.hasDNF !== lastHasDNF || 
-                (result.average !== null && lastAverage !== null && Math.abs(result.average - lastAverage) > 0.01)) {
-                currentRank = index + 1;
-            }
-            lastAverage = result.average;
-            lastHasDNF = result.hasDNF;
-            
-            return {
-                ...result,
-                ranking: currentRank
-            };
-        });
+    generateTableHeaders(config) {
+        switch (config.scoringMethod) {
+            case 'single':
+                return '<th>最佳单次</th>';
+            case 'mo3':
+                return '<th>单次</th><th>平均</th>';
+            case 'ao5':
+                return '<th>单次</th><th>平均</th>';
+            case 'single_with_mo3':
+                return '<th>单次</th><th>平均</th>';
+            default:
+                return '<th>单次</th><th>平均</th>';
+        }
     }
+
+    /**
+     * 获取成绩列的表头文本
+     * @param {Object} config - 项目配置
+     * @returns {string} 表头文本
+     */
+    getTimesColumnHeader(config) {
+        if (config.timeFormat === 'moves') {
+            return '步数';
+        }
+        
+        return '成绩';
+    }
+
+    /**
+     * 获取项目提示信息
+     * @param {string} projectName - 项目名称
+     * @returns {string} 提示信息
+     */
+    getProjectTooltip(projectName) {
+        const config = getProjectConfig(projectName);
+        const scoringMethodText = config.scoringMethod === 'single' ? '最佳单次' :
+                                config.scoringMethod === 'mo3' ? '3次平均' :
+                                config.scoringMethod === 'ao5' ? '5次去头尾平均' : '计算平均';
+        
+        return `${config.displayName}: ${config.attempts}把成绩，${scoringMethodText}`;
+    }
+
+    /**
+     * 获取项目配置显示信息
+     * @param {string} projectName - 项目名称
+     * @returns {string} 配置显示HTML
+     */
+    getProjectConfigDisplay(projectName) {
+        const config = getProjectConfig(projectName);
+        const scoringMethodText = config.scoringMethod === 'single' ? '最佳单次' :
+                                config.scoringMethod === 'mo3' ? '3次平均' :
+                                config.scoringMethod === 'ao5' ? '5次去头尾平均' : '计算平均';
+        
+        const timeFormatText = config.timeFormat === 'moves' ? '步数' :
+                             config.timeFormat === 'extended' ? '长时间' : '标准时间';
+
+        return `
+            <div class="config-badges">
+                <span class="config-badge config-attempts">${config.attempts}把</span>
+                <span class="config-badge config-scoring">${scoringMethodText}</span>
+                <span class="config-badge config-format">${timeFormatText}</span>
+            </div>
+        `;
+    }
+
 
     /**
      * 生成结果行HTML
      * @param {Object} result - 结果数据
+     * @param {Object} config - 项目配置
      * @returns {string} HTML字符串
      */
-    generateResultRow(result) {
-        // 使用计算出的单次和平均成绩
-        const single = result.single;
-        const average = result.average;
-        
-        // 处理带状态的成绩显示
-        const times = result.times || [];
-        const parsedTimes = result.parsedTimes || times.map(time => {
-            if (typeof time === 'object' && time.status) {
-                return time;
-            }
-            // 兼容旧格式
-            if (typeof time === 'string' && time.includes(':')) {
-                const parts = time.split(':');
-                return {
-                    time: parseFloat(parts[0]) * 60 + parseFloat(parts[1]),
-                    status: 'normal',
-                    display: time
-                };
-            }
-            return {
-                time: parseFloat(time) || 0,
-                status: 'normal',
-                display: time
-            };
-        });
-        
-        // 对成绩进行排序用于显示
-        const sortedTimes = [...parsedTimes].sort((a, b) => {
-            if (a.status === 'dnf' && b.status === 'dnf') return 0;
-            if (a.status === 'dnf') return 1;
-            if (b.status === 'dnf') return -1;
-            return (a.time || 0) - (b.time || 0);
-        });
-
+    generateResultRow(result, config) {
         // 轮数显示
         const roundText = result.round ? `第${result.round}轮` : '-';
+        
+        // 排名显示
+        const rankingHtml = `
+            <span class="ranking ${getRankingClass(result.rank)}">
+                ${result.rank}
+            </span>
+        `;
+        
+        // 根据项目配置生成成绩列
+        const scoresHtml = this.generateScoreColumns(result, config);
+        
+        // 生成详细成绩列表
+        const timesHtml = this.generateTimesList(result, config);
 
         return `
             <tr>
-                <td>
-                    <span class="ranking ${getRankingClass(result.ranking)}">
-                        ${result.ranking}
-                    </span>
-                </td>
+                <td>${rankingHtml}</td>
                 <td>${result.name}</td>
-                <td>${single ? this.formatTime(single) : '-'}</td>
-                <td>${average ? this.formatTime(average) : (result.hasDNF ? 'DNF' : '-')}</td>
-                <td>
-                    <div class="times-list">
-                        ${parsedTimes.map(time => {
-                            const isBest = time === sortedTimes[0];
-                            const isWorst = time === sortedTimes[sortedTimes.length - 1];
-                            const displayTime = isBest || isWorst ? 
-                                `( ${time.display} )` : time.display;
-                            return `
-                                <span class="time-item ${isBest ? 'best' : isWorst ? 'worst' : ''} ${time.status === 'dnf' ? 'dnf' : time.status === 'plus2' ? 'plus2' : ''}">
-                                    ${displayTime}
-                                </span>
-                            `;
-                        }).join('')}
-                    </div>
-                </td>
+                ${scoresHtml}
+                <td>${timesHtml}</td>
                 <td>${roundText}</td>
             </tr>
         `;
     }
 
     /**
-     * 格式化时间显示
+     * 生成成绩列HTML
+     * @param {Object} result - 结果数据
+     * @param {Object} config - 项目配置
+     * @returns {string} 成绩列HTML
+     */
+    generateScoreColumns(result, config) {
+        const isMovesFormat = config.timeFormat === 'moves';
+        
+        switch (config.scoringMethod) {
+            case 'single':
+                // 只显示最佳单次
+                const bestTime = result.result !== null ? 
+                    formatTimeDisplay(result.result, isMovesFormat) : 'DNF';
+                return `<td>${bestTime}</td>`;
+                
+            case 'mo3':
+            case 'ao5':
+                // 显示单次和平均
+                const single = this.getBestSingle(result.times);
+                const singleDisplay = single !== null ? 
+                    formatTimeDisplay(single, isMovesFormat) : '-';
+                const averageDisplay = result.result !== null ? 
+                    formatTimeDisplay(result.result, isMovesFormat) : 'DNF';
+                return `<td>${singleDisplay}</td><td>${averageDisplay}</td>`;
+                
+            case 'single_with_mo3':
+                // 盲拧项目：显示最佳单次和3次平均
+                const blindSingleDisplay = result.result !== null ? 
+                    formatTimeDisplay(result.result, isMovesFormat) : 'DNF';
+                const blindAverageDisplay = result.averageDisplay || 'DNF';
+                return `<td>${blindSingleDisplay}</td><td>${blindAverageDisplay}</td>`;
+                
+            default:
+                return '<td>-</td><td>-</td>';
+        }
+    }
+
+    /**
+     * 获取最佳单次成绩
+     * @param {Array} times - 成绩数组
+     * @returns {number|null} 最佳单次成绩
+     */
+    getBestSingle(times) {
+        if (!times || times.length === 0) return null;
+        
+        const validTimes = times
+            .filter(t => t.status !== 'dnf')
+            .map(t => t.time)
+            .filter(t => t !== null && t !== undefined);
+            
+        return validTimes.length > 0 ? Math.min(...validTimes) : null;
+    }
+
+    /**
+     * 生成详细成绩列表HTML
+     * @param {Object} result - 结果数据
+     * @param {Object} config - 项目配置
+     * @returns {string} 成绩列表HTML
+     */
+    generateTimesList(result, config) {
+        const times = result.times || [];
+        if (times.length === 0) {
+            return '<div class="times-list">-</div>';
+        }
+        
+        const isMovesFormat = config.timeFormat === 'moves';
+        
+        // 对成绩进行排序用于标记最好和最差
+        const sortedTimes = [...times].sort((a, b) => {
+            if (a.status === 'dnf' && b.status === 'dnf') return 0;
+            if (a.status === 'dnf') return 1;
+            if (b.status === 'dnf') return -1;
+            return (a.time || 0) - (b.time || 0);
+        });
+
+        return `
+            <div class="times-list">
+                ${times.map(time => {
+                    // 只有AO5项目才标记最好和最差成绩并加括号
+                    const isBest = config.scoringMethod === 'ao5' && time === sortedTimes[0] && time.status !== 'dnf';
+                    const isWorst = config.scoringMethod === 'ao5' && time === sortedTimes[sortedTimes.length - 1] && sortedTimes.filter(t => t.status !== 'dnf').length > 1;
+                    
+                    let displayTime = time.display;
+                    // 只有去头尾平均（AO5）才加括号
+                    if (config.scoringMethod === 'ao5' && (isBest || isWorst)) {
+                        displayTime = `(${displayTime})`;
+                    }
+                    
+                    // 移除特殊状态样式，只保留AO5的best/worst样式
+                    const rankClass = config.scoringMethod === 'ao5' ? 
+                                    (isBest ? 'best' : isWorst ? 'worst' : '') : '';
+                    
+                    return `
+                        <span class="time-item ${rankClass}">
+                            ${displayTime}
+                        </span>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * 格式化时间显示（使用新的时间工具）
      * @param {number|string} time - 时间（秒）
+     * @param {boolean} isMovesFormat - 是否为步数格式
      * @returns {string} 格式化后的时间字符串
      */
-    formatTime(time) {
-        if (!time || time === 0) return '-';
-        
-        const numTime = typeof time === 'string' ? parseFloat(time) : time;
-        if (isNaN(numTime)) return '-';
-        
-        if (numTime < 60) {
-            return numTime.toFixed(2);
-        } else {
-            const minutes = Math.floor(numTime / 60);
-            const seconds = (numTime % 60).toFixed(2);
-            return `${minutes}:${seconds.padStart(5, '0')}`;
-        }
+    formatTime(time, isMovesFormat = false) {
+        return formatTimeDisplay(time, isMovesFormat);
     }
 
     /**

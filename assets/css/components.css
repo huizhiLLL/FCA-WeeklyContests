@@ -634,6 +634,122 @@
 }
 
 /* 周赛记录样式 */
+
+/* 项目配置显示样式 */
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.project-header-left {
+    flex: 1;
+}
+
+.project-title {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.project-config-info {
+    margin-top: var(--spacing-xs);
+}
+
+.config-badges {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.config-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.config-badge.config-attempts {
+    background: var(--primary-100);
+    color: var(--primary-700);
+}
+
+.config-badge.config-scoring {
+    background: var(--accent-100);
+    color: var(--accent-700);
+}
+
+.config-badge.config-format {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+/* 项目标签样式增强 */
+.project-tab {
+    position: relative;
+}
+
+.project-tab:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gray-900);
+    color: var(--text-white);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* 成绩表格样式增强 */
+.contest-table th {
+    position: relative;
+}
+
+.contest-table th:first-child {
+    width: 60px;
+}
+
+.contest-table th:nth-child(2) {
+    min-width: 80px;
+}
+
+
+.time-item.best {
+    color: var(--success-700);
+    font-weight: 600;
+}
+
+.time-item.worst {
+    color: var(--danger-500);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .project-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .config-badges {
+        justify-content: flex-start;
+    }
+    
+    .project-tab:hover::after {
+        display: none;
+    }
+}
 .contests-section {
     padding: var(--spacing-2xl) 0;
 }
@@ -727,42 +843,12 @@
     font-size: 1.2rem;
 }
 
-/* 成绩状态样式 */
-.score-time.dnf,
-.time-item.dnf {
-    color: #dc2626;
-    font-weight: bold;
-    background: rgba(220, 38, 38, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.score-time.plus2,
-.time-item.plus2 {
-    color: #f59e0b;
-    font-weight: bold;
-    background: rgba(245, 158, 11, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
 
 .score-time.normal,
 .time-item.normal {
     color: var(--text-primary);
 }
 
-/* 成绩格式信息图标样式 */
-.score-format-info {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-left: 4px;
-    cursor: help;
-    transition: color 0.2s ease;
-}
-
-.score-format-info:hover {
-    color: var(--primary-color);
-}
 
 .contests-timeline {
     display: flex;

@@ -160,5 +160,20 @@
     <!-- JavaScript -->
     <script type="module" src="assets/js/app.js"></script>
     <script type="module" src="assets/js/pwa.js"></script>
+    <script type="module">
+        // 初始化周赛记录组件
+        import { ContestsComponent } from './assets/js/components/contests.js';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const contestsTimeline = document.getElementById('contests-timeline');
+            if (contestsTimeline) {
+                const contestsComponent = new ContestsComponent(contestsTimeline);
+                contestsComponent.init();
+                
+                // 将组件实例保存到全局变量，供HTML中的onclick事件使用
+                window.contestsComponent = contestsComponent;
+            }
+        });
+    </script>
 </body>
 </html>

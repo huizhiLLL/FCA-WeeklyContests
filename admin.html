@@ -937,6 +937,108 @@
             min-width: 50px;
         }
 
+        /* 帮助提示样式 */
+        .btn-group-with-help {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .help-icon-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .help-icon {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            cursor: help;
+            transition: all 0.3s ease;
+        }
+
+        .help-icon:hover {
+            color: var(--primary-dark);
+            transform: scale(1.1);
+        }
+
+        .help-tooltip {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            right: 0;
+            background: var(--gray-900);
+            color: var(--text-white);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 350px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .help-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 20px;
+            border: 6px solid transparent;
+            border-top-color: var(--gray-900);
+        }
+
+        .help-icon:hover + .help-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-content h4 {
+            margin: 0 0 var(--spacing-sm) 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-white);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: var(--spacing-xs);
+        }
+
+        .format-examples {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .format-example {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-xs) 0;
+            font-size: 0.8rem;
+        }
+
+        .format-project {
+            font-weight: 500;
+            color: var(--primary-200);
+            min-width: 60px;
+        }
+
+        .format-sample {
+            font-family: monospace;
+            color: var(--gray-300);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+        }
+
+        .format-note {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: var(--spacing-xs);
+            padding-top: var(--spacing-xs);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
         /* 项目标签页样式 */
         .project-tabs-container {
             margin-top: var(--spacing-lg);
@@ -1027,6 +1129,26 @@
 
             .form-actions {
                 flex-direction: column;
+            }
+
+            .help-tooltip {
+                position: fixed;
+                left: var(--spacing-md);
+                right: var(--spacing-md);
+                bottom: 20%;
+                min-width: auto;
+                max-width: none;
+                width: calc(100vw - 2 * var(--spacing-md));
+            }
+
+            .help-tooltip::after {
+                display: none;
+            }
+
+            .btn-group-with-help {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-xs);
             }
         }
     </style>
@@ -1359,6 +1481,9 @@
                                 <select id="project-select" class="form-control">
                                     <!-- 动态生成项目选项 -->
                                 </select>
+                                <div class="project-info-display" id="project-info-display" style="margin-top: var(--spacing-sm); padding: var(--spacing-sm); background: var(--gray-50); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--text-secondary);">
+                                    <!-- 项目配置信息将在这里显示 -->
+                                </div>
                             </div>
                             
                             <!-- 快速录入区域 -->
@@ -1382,16 +1507,50 @@
                                             </select>
                                         </div>
                                         <div class="form-group">
-                                            <label for="times-input">成绩（用空格分隔）：
-                                                <i class="fas fa-info-circle score-format-info" title="支持格式：普通成绩(5.89)、+2成绩(6.12+)、DNF成绩(DNF)"></i>
-                                            </label>
-                                            <input type="text" id="times-input" class="form-control" placeholder="如：5.89 6.12 5.45 6.01 5.78 或 5.89 6.12+ 5.45 DNF 6.01">
+                                            <label for="times-input">成绩（用空格分隔）：</label>
+                                            <input type="text" id="times-input" class="form-control" placeholder="如：5.89 6.12 5.45 6.01 5.78 ">
                                         </div>
                                         <div class="form-group">
-                                            <button type="button" class="btn btn-primary" onclick="quickAddScore()">
-                                                <i class="fas fa-save"></i>
-                                                录入成绩
-                                            </button>
+                                            <div class="btn-group-with-help">
+                                                <button type="button" class="btn btn-primary" onclick="quickAddScore()">
+                                                    <i class="fas fa-save"></i>
+                                                    录入成绩
+                                                </button>
+                                                <div class="help-icon-container">
+                                                    <i class="fas fa-question-circle help-icon" id="score-format-help"></i>
+                                                    <div class="help-tooltip" id="score-format-tooltip">
+                                                        <div class="tooltip-content">
+                                                            <h4>快速录入格式</h4>
+                                                            <div class="format-examples">
+                                                                <div class="format-example">
+                                                                    <span class="format-project">三阶</span>
+                                                                    <span class="format-sample">5.89 6.12+ DNF 5.45 6.01</span>
+                                                                </div>
+                                                                
+                                                                <div class="format-example">
+                                                                    <span class="format-project">四阶</span>
+                                                                    <span class="format-sample">45.67 1:02.32 50.12 36.93 DNF</span>
+                                                                </div>
+                                                                <div class="format-example">
+                                                                    <span class="format-project">六阶</span>
+                                                                    <span class="format-sample">2:45.67 3:02.34 2:55.12</span>
+                                                                </div>
+                                                                <div class="format-example">
+                                                                    <span class="format-project">盲拧</span>
+                                                                    <span class="format-sample">1:25.67 DNF 1:35.12</span>
+                                                                </div>
+                                                                <div class="format-example">
+                                                                    <span class="format-project">最少步</span>
+                                                                    <span class="format-sample">25 30 28</span>
+                                                                </div>
+                                                                <div class="format-note">
+                                                                    支持：普通成绩、+2惩罚(+)、DNF、长时间(分:秒)
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1581,6 +1740,9 @@
         // 管理后台专用脚本
         import { recordsAPI, contestsAPI, contestScoresAPI } from './assets/js/api.js';
         import { showSuccess, showError, animateCounter } from './assets/js/utils.js';
+        import { getProjectConfig, getProjectAttempts, getProjectScoringMethod, getProjectTimeFormat, getAllProjects, getProjectsByCategory } from './assets/js/projectConfig.js';
+        import { parseTimeString, validateTimeForProject, getTimeInputPlaceholder, formatTimeDisplay } from './assets/js/timeUtils.js';
+        import { processPlayerResult, calculateProjectRanking, validatePlayerScores, generateScoreSummary } from './assets/js/scoringUtils.js';
 
         class AdminManager {
             constructor() {
@@ -1614,11 +1776,63 @@
                 document.addEventListener('change', (e) => {
                     if (e.target.id === 'project-select') {
                         const contestId = document.getElementById('score-entry-contest-id').value;
-                        if (contestId) {
-                            this.loadEnteredScores(contestId, e.target.value);
+                        const projectName = e.target.value;
+                        
+                        if (contestId && projectName) {
+                            this.loadEnteredScores(contestId, projectName);
+                            this.updateProjectInfo(projectName);
+                            this.updateTimesInputPlaceholder(projectName);
                         }
                     }
                 });
+            }
+
+            // 更新项目信息显示
+            updateProjectInfo(projectName) {
+                const infoDisplay = document.getElementById('project-info-display');
+                if (!infoDisplay || !projectName) return;
+                
+                const config = getProjectConfig(projectName);
+                
+                infoDisplay.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <i class="fas fa-info-circle"></i>
+                        <span><strong>${config.displayName}</strong>: ${config.description}</span>
+                    </div>
+                    <div style="margin-top: var(--spacing-xs); font-size: 0.8rem;">
+                        成绩数量: ${config.attempts}把 | 
+                        计分方式: ${this.getScoringMethodDisplay(config.scoringMethod)} | 
+                        时间格式: ${this.getTimeFormatDisplay(config.timeFormat)}
+                    </div>
+                `;
+            }
+
+            // 获取计分方式显示文本
+            getScoringMethodDisplay(method) {
+                const methods = {
+                    'single': '最佳单次',
+                    'mo3': '3次平均',
+                    'ao5': '5次去头尾平均'
+                };
+                return methods[method] || method;
+            }
+
+            // 获取时间格式显示文本
+            getTimeFormatDisplay(format) {
+                const formats = {
+                    'standard': '标准时间',
+                    'extended': '长时间格式',
+                    'moves': '步数'
+                };
+                return formats[format] || format;
+            }
+
+            // 更新时间输入框的提示文本
+            updateTimesInputPlaceholder(projectName) {
+                const timesInput = document.getElementById('times-input');
+                if (timesInput) {
+                    timesInput.placeholder = getTimeInputPlaceholder(projectName);
+                }
             }
 
             // 绑定周赛编辑相关事件
@@ -2108,13 +2322,19 @@
                 contest.contests.forEach(project => {
                     const option = document.createElement('option');
                     option.value = project.project;
-                    option.textContent = project.project;
+                    
+                    // 显示项目名称和配置信息
+                    const config = getProjectConfig(project.project);
+                    option.textContent = `${config.displayName} (${config.attempts}把 - ${this.getScoringMethodDisplay(config.scoringMethod)})`;
                     projectSelect.appendChild(option);
                 });
                 
                 // 默认选择第一个项目
                 if (contest.contests.length > 0) {
                     projectSelect.value = contest.contests[0].project;
+                    // 更新项目信息显示
+                    this.updateProjectInfo(contest.contests[0].project);
+                    this.updateTimesInputPlaceholder(contest.contests[0].project);
                 }
             }
 
@@ -2164,6 +2384,11 @@
             generateScoreItem(result, index) {
                 const times = result.times || [];
                 
+                // 获取当前选择的项目类型
+                const projectSelect = document.getElementById('project-select');
+                const projectName = projectSelect ? projectSelect.value : '';
+                const config = getProjectConfig(projectName);
+                
                 // 对成绩进行排序，DNF排最后，其他按时间排序
                 const sortedTimes = [...times].sort((a, b) => {
                     // 如果都是对象（带状态），按时间排序
@@ -2199,22 +2424,32 @@
                             </div>
                             <div class="score-times">
                                 ${times.map(time => {
-                                    const isBest = time === sortedTimes[0];
-                                    const isWorst = time === sortedTimes[sortedTimes.length - 1];
+                                    // 只有AO5项目才标记最好和最差成绩
+                                    const isBest = config.scoringMethod === 'ao5' && time === sortedTimes[0] && 
+                                                  !(typeof time === 'object' && time.status === 'dnf');
+                                    const isWorst = config.scoringMethod === 'ao5' && time === sortedTimes[sortedTimes.length - 1] && 
+                                                   sortedTimes.filter(t => !(typeof t === 'object' && t.status === 'dnf')).length > 1;
                                     
                                     // 处理带状态的成绩显示
-                                    let displayTime, statusClass = '';
+                                    let displayTime = '';
                                     if (typeof time === 'object' && time.status) {
                                         displayTime = time.display;
-                                        if (time.status === 'dnf') statusClass = 'dnf';
-                                        else if (time.status === 'plus2') statusClass = 'plus2';
                                     } else {
                                         // 兼容旧格式
-                                        displayTime = this.formatTime(time);
+                                        displayTime = this.formatTime(time, projectName);
                                     }
                                     
+                                    // 只有去头尾平均（AO5）才加括号
+                                    if (config.scoringMethod === 'ao5' && (isBest || isWorst)) {
+                                        displayTime = `(${displayTime})`;
+                                    }
+                                    
+                                    // 只有AO5项目才应用best/worst样式
+                                    const rankClass = config.scoringMethod === 'ao5' ? 
+                                                    (isBest ? 'best' : isWorst ? 'worst' : '') : '';
+                                    
                                     return `
-                                        <span class="score-time ${isBest ? 'best' : isWorst ? 'worst' : ''} ${statusClass}">
+                                        <span class="score-time ${rankClass}">
                                             ${displayTime}
                                         </span>
                                     `;
@@ -2242,20 +2477,10 @@
                 `;
             }
 
-            // 格式化时间显示
-            formatTime(time) {
-                if (!time || time === 0) return '-';
-                
-                const numTime = typeof time === 'string' ? parseFloat(time) : time;
-                if (isNaN(numTime)) return '-';
-                
-                if (numTime < 60) {
-                    return numTime.toFixed(2);
-                } else {
-                    const minutes = Math.floor(numTime / 60);
-                    const seconds = (numTime % 60).toFixed(2);
-                    return `${minutes}:${seconds.padStart(5, '0')}`;
-                }
+            // 格式化时间显示（使用新的时间工具）
+            formatTime(time, projectName) {
+                const config = getProjectConfig(projectName);
+                return formatTimeDisplay(time, config.timeFormat === 'moves');
             }
 
             // 渲染项目标签页
@@ -2386,11 +2611,13 @@
                 return allParticipants.size;
             }
 
-            // 验证成绩格式
-            validateTimesFormat(timesInput) {
+            // 验证成绩格式（使用新的时间工具）
+            validateTimesFormat(timesInput, projectName) {
                 if (!timesInput.trim()) {
                     return { valid: false, message: '请输入成绩' };
                 }
+                
+                const config = getProjectConfig(projectName);
                 
                 // 解析成绩
                 const times = timesInput.split(/\s+/).filter(time => time.trim());
@@ -2398,15 +2625,20 @@
                     return { valid: false, message: '请输入有效的成绩' };
                 }
                 
-                // 解析每个成绩，支持+2和DNF格式
+                // 检查成绩数量
+                if (times.length > config.attempts) {
+                    return { valid: false, message: `${projectName}最多只能输入${config.attempts}个成绩` };
+                }
+                
+                // 解析每个成绩
                 const parsedTimes = [];
                 for (let i = 0; i < times.length; i++) {
                     const time = times[i].trim();
                     if (!time) continue;
                     
-                    const parsed = this.parseTimeWithStatus(time);
+                    const parsed = validateTimeForProject(time, projectName);
                     if (!parsed.valid) {
-                        return { valid: false, message: `第${i + 1}个成绩格式无效：${time}` };
+                        return { valid: false, message: `第${i + 1}个成绩格式无效：${parsed.error}` };
                     }
                     parsedTimes.push(parsed);
                 }
@@ -2414,49 +2646,6 @@
                 return { valid: true, times: parsedTimes };
             }
 
-            // 解析带状态的成绩
-            parseTimeWithStatus(timeStr) {
-                const upperTime = timeStr.toUpperCase();
-                
-                // 检查是否为DNF
-                if (upperTime === 'DNF') {
-                    return {
-                        valid: true,
-                        time: null,
-                        status: 'dnf',
-                        display: 'DNF'
-                    };
-                }
-                
-                // 检查是否为+2格式（以+结尾）
-                if (timeStr.endsWith('+')) {
-                    const baseTime = timeStr.slice(0, -1);
-                    const numTime = parseFloat(baseTime);
-                    if (isNaN(numTime) || numTime <= 0) {
-                        return { valid: false };
-                    }
-                    return {
-                        valid: true,
-                        time: numTime,
-                        status: 'plus2',
-                        display: timeStr,
-                        originalTime: numTime - 2
-                    };
-                }
-                
-                // 普通成绩
-                const numTime = parseFloat(timeStr);
-                if (isNaN(numTime) || numTime <= 0) {
-                    return { valid: false };
-                }
-                
-                return {
-                    valid: true,
-                    time: numTime,
-                    status: 'normal',
-                    display: timeStr
-                };
-            }
 
             // 快速录入成绩
             async quickAddScore() {
@@ -2465,14 +2654,20 @@
                 const roundInput = document.getElementById('round-input').value;
                 const projectSelect = document.getElementById('project-select');
                 const contestId = document.getElementById('score-entry-contest-id').value;
+                const projectName = projectSelect.value;
                 
                 if (!playerName) {
                     showError('请输入选手姓名');
                     return;
                 }
                 
-                // 验证成绩格式
-                const validation = this.validateTimesFormat(timesInput);
+                if (!projectName) {
+                    showError('请选择项目');
+                    return;
+                }
+                
+                // 验证成绩格式（传入项目名称）
+                const validation = this.validateTimesFormat(timesInput, projectName);
                 if (!validation.valid) {
                     showError(validation.message);
                     return;
@@ -2551,10 +2746,9 @@
                         <option value="3" ${currentRound == 3 ? 'selected' : ''}>第3轮</option>
                     </select>
                     <input type="text" class="times-edit" value="${times.join(' ')}" placeholder="成绩（用空格分隔）">
-                    <small class="form-text text-muted">
-                        <i class="fas fa-info-circle score-format-info" title="支持格式：普通成绩(5.89)、+2成绩(6.12+)、DNF成绩(DNF)"></i>
-                        悬停查看支持格式
-                    </small>
+                                    <small class="form-text text-muted">
+                                        悬停录入按钮旁的帮助图标查看格式
+                                    </small>
                     <button class="btn btn-sm btn-primary" onclick="saveScoreEdit(${index})">
                         <i class="fas fa-save"></i>
                     </button>
@@ -2587,8 +2781,8 @@
                     return;
                 }
                 
-                // 验证成绩格式
-                const validation = this.validateTimesFormat(timesInput);
+                // 验证成绩格式（传入项目名称）
+                const validation = this.validateTimesFormat(timesInput, projectSelect.value);
                 if (!validation.valid) {
                     showError(validation.message);
                     return;
@@ -2957,19 +3151,27 @@
                 return;
             }
 
-            // 收集现有项目
-            const existingProjects = Array.from(document.querySelectorAll('.project-item')).map(item => {
+            // 收集现有项目（保留原有成绩数据）
+            const existingProjects = [];
+            
+            // 获取当前周赛的完整数据
+            const currentContest = adminManager.contests.find(c => c._id === contestId);
+            if (!currentContest) {
+                showError('找不到周赛数据');
+                return;
+            }
+            
+            // 遍历界面上显示的项目，保留原有数据
+            Array.from(document.querySelectorAll('.project-item')).forEach(item => {
                 const projectName = item.querySelector('.project-name').textContent;
-                const statsText = item.querySelector('.project-stats').textContent;
-                const playerCount = parseInt(statsText.match(/\d+/)[0]) || 0;
                 
-                return {
+                // 从原数据中查找该项目的成绩
+                const existingProjectData = currentContest.contests.find(c => c.project === projectName);
+                
+                existingProjects.push({
                     project: projectName,
-                    results: new Array(playerCount).fill(null).map(() => ({
-                        name: '',
-                        times: []
-                    }))
-                };
+                    results: existingProjectData ? existingProjectData.results || [] : []
+                });
             });
 
             // 更新周赛数据
