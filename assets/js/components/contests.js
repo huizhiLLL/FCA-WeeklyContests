@@ -26,6 +26,7 @@ export class ContestsComponent {
      */
     async init() {
         await this.loadContests();
+        this.generateWeekFilter();
         this.bindEvents();
     }
 
@@ -42,8 +43,54 @@ export class ContestsComponent {
             const contests = await this.apiClient.getContests();
             this.contests = contests;
             this.renderContests();
+            this.generateWeekFilter(); // 重新生成筛选器
         } catch (error) {
             this.showError('加载周赛记录失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 生成周次筛选器选项
+     */
+    generateWeekFilter() {
+        const weekFilter = document.getElementById('week-filter');
+        if (!weekFilter || !this.contests) return;
+
+        // 保存当前选中的值
+        const currentValue = weekFilter.value;
+
+        // 获取所有唯一的周次，并按时间排序
+        const weeks = [...new Set(this.contests.map(contest => contest.week))]
+            .filter(week => week) // 过滤空值
+            .sort((a, b) => {
+                // 尝试按周次数字排序，如果失败则按字符串排序
+                const aNum = parseInt(a.match(/\d+/)?.[0]);
+                const bNum = parseInt(b.match(/\d+/)?.[0]);
+                if (aNum && bNum) {
+                    return aNum - bNum;
+                }
+                return a.localeCompare(b);
+            });
+
+        // 生成选项HTML
+        const optionsHtml = weeks.map(week => {
+            // 找到对应的日期
+            const contest = this.contests.find(c => c.week === week);
+            const date = contest ? contest.date : '';
+            const displayText = date ? `${week} (${date})` : week;
+            
+            return `<option value="${week}">${displayText}</option>`;
+        }).join('');
+
+        // 更新筛选器内容
+        weekFilter.innerHTML = `
+            <option value="">全部周次</option>
+            ${optionsHtml}
+        `;
+
+        // 恢复之前选中的值
+        if (currentValue && weeks.includes(currentValue)) {
+            weekFilter.value = currentValue;
         }
     }
 
